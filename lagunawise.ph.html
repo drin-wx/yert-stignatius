@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LagunaWISE Organization - Time Check & Speech Announcer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e',
+            },
+            accent: {
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            digital: ['Orbitron', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .glow-box {
+      box-shadow: 0 0 25px -5px rgba(2, 132, 199, 0.25);
+    }
+    .glow-pulse {
+      animation: pulse-glow 2s infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px 0px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 25px 5px rgba(16, 185, 129, 0.7); }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Audio Autoplay Unlock Overlay -->
+  <div id="audioUnlockOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 max-w-md w-full rounded-2xl p-6 text-center shadow-2xl space-y-5">
+      <div class="w-16 h-16 bg-brand-500/10 text-brand-500 rounded-full flex items-center justify-center mx-auto border border-brand-500/30">
+        <i class="fa-solid fa-volume-high text-2xl"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold text-white tracking-wide">LagunaWISE Monitoring</h2>
+        <p class="text-slate-400 text-sm mt-2">To start automated time check announcements and audio chimes, please enable system audio.</p>
+      </div>
+      <button id="unlockAudioBtn" class="w-full py-3.5 px-6 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-600 text-white font-semibold rounded-xl transition duration-200 shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 text-base cursor-pointer">
+        <i class="fa-solid fa-power-off"></i> Enable & Start System
+      </button>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-tr from-brand-600 to-brand-500 p-2.5 rounded-xl shadow-lg shadow-brand-500/20 text-white">
+          <i class="fa-solid fa-tower-broadcast text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            LagunaWISE <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">ORGANIZATION</span>
+          </h1>
+          <p class="text-xs text-slate-400 font-medium">Automated Time Check & Speech Announcer System (PHST)</p>
+        </div>
+      </div>
+
+      <!-- Quick Status Badges -->
+      <div class="flex items-center space-x-3">
+        <div id="statusBadge" class="flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-500" id="statusDot"></span>
+          <span id="statusText">System Standby</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock text-brand-400"></i>
+          <span>PHST (UTC+8)</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow space-y-6">
+
+    <!-- Top Digital Clock & Countdown Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Live Clock Card -->
+      <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between glow-box">
+        <div class="absolute -right-8 -bottom-8 opacity-5 text-slate-100 pointer-events-none">
+          <i class="fa-solid fa-clock text-9xl"></i>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
+            <i class="fa-solid fa-globe"></i> Philippine Standard Time
+          </span>
+          <span class="text-xs text-slate-500" id="phstDateFormatted">--</span>
+        </div>
+        
+        <div class="my-4">
+          <div id="liveClockDisplay" class="font-digital text-4xl sm:text-6xl text-white font-bold tracking-wider drop-shadow-md">
+            00:00:00 PM
+          </div>
+          <div id="liveDateDisplay" class="text-slate-400 text-sm sm:text-base mt-1 font-medium">
+            Loading date...
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-3 mt-2">
+          <span>Target Voice: <strong class="text-slate-200" id="activeVoiceName">Microsoft David English (US)</strong></span>
+          <span id="speechState" class="text-slate-400"><i class="fa-solid fa-volume-xmark mr-1"></i> Idle</span>
+        </div>
+      </div>
+
+      <!-- Timer & Next Announcement Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-accent-500 flex items-center gap-2">
+            <i class="fa-solid fa-hourglass-half"></i> Next Announcement
+          </span>
+          <span id="countdownProgressText" class="text-xs font-mono text-slate-400">05:00</span>
+        </div>
+
+        <div class="my-4 text-center">
+          <div id="countdownDisplay" class="font-digital text-5xl font-extrabold text-white tracking-widest">
+            05:00
+          </div>
+          <p class="text-xs text-slate-400 mt-2">
+            Next Trigger at: <span id="nextScheduledTime" class="text-slate-200 font-semibold">--:-- --</span>
+          </p>
+        </div>
+
+        <!-- Master System Controls -->
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button id="toggleSystemBtn" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer">
+            <i class="fa-solid fa-play" id="toggleIcon"></i> <span id="toggleBtnText">Start Auto</span>
+          </button>
+          <button id="triggerNowBtn" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-brand-400 border border-brand-500/30 font-semibold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-bullhorn"></i> Announce Now
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Settings & Voice Options -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Column 1 & 2: Configuration & Template -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Interval & Announcement Settings -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <h2 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+            <i class="fa-solid fa-sliders text-brand-500"></i> Interval & Voice Speech Configuration
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Interval Input -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">
+                Repeat Interval (Minutes)
+              </label>
+              <div class="relative">
+                <input type="number" id="intervalInput" min="0.1" step="0.5" value="5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition font-mono" />
+                <span class="absolute right-3 top-2.5 text-xs text-slate-500">mins</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Default is 5 minutes (300 seconds).</p>
+            </div>
+
+            <!-- Pre/Post Chime Selection -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">
+                Alert Sound Chime
+              </label>
+              <div class="flex items-center gap-2">
+                <select id="chimeTypeSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+                  <option value="synth">Dual-Tone Chime (Web Audio Synthesizer)</option>
+                  <option value="file">External Audio File (alert.wav)</option>
+                </select>
+                <button id="testChimeBtn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2.5 rounded-xl text-xs font-medium transition whitespace-nowrap cursor-pointer">
+                  <i class="fa-solid fa-volume-low"></i> Test
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Tone plays before and after time speech.</p>
+            </div>
+          </div>
+
+          <!-- Speech Voice & Pitch Controls -->
+          <div class="space-y-4 pt-2 border-t border-slate-800/60">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5 flex justify-between">
+                <span>Select Voice Engine</span>
+                <span id="voiceMatchBadge" class="text-[10px] text-emerald-400">Auto-Detecting...</span>
+              </label>
+              <select id="voiceSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+                <option value="">Searching voices...</option>
+              </select>
+              <p class="text-[11px] text-slate-500 mt-1">System prioritizes <strong>Microsoft David English (US)</strong> or system default English male voice.</p>
+            </div>
+
+            <!-- Sliders for Rate, Pitch, Volume -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1 flex justify-between">
+                  <span>Speed / Rate</span>
+                  <span id="rateValue" class="text-brand-400">1.0x</span>
+                </label>
+                <input type="range" id="speechRate" min="0.5" max="1.5" step="0.1" value="1.0" class="w-full accent-brand-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1 flex justify-between">
+                  <span>Pitch</span>
+                  <span id="pitchValue" class="text-brand-400">1.0</span>
+                </label>
+                <input type="range" id="speechPitch" min="0.5" max="1.5" step="0.1" value="1.0" class="w-full accent-brand-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1 flex justify-between">
+                  <span>Volume</span>
+                  <span id="volumeValue" class="text-brand-400">100%</span>
+                </label>
+                <input type="range" id="speechVolume" min="0" max="1" step="0.1" value="1.0" class="w-full accent-brand-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+              </div>
+            </div>
+          </div>
+
+          <!-- Announcement Template Input -->
+          <div class="pt-2 border-t border-slate-800/60">
+            <label class="block text-xs font-medium text-slate-300 mb-1.5 flex justify-between">
+              <span>Announcement Sentence Template</span>
+              <button id="resetTemplateBtn" class="text-[11px] text-brand-400 hover:underline">Reset Default</button>
+            </label>
+            <textarea id="templateInput" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition font-sans leading-relaxed">Time check. It's {TIME}, {DATE}. Time check brought to you by LagunaWISE Organization. All updates will be monitored.</textarea>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">{TIME} = Live PHST Time</span>
+              <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">{DATE} = Live Date</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Live Announcement Speech Preview Box -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span><i class="fa-solid fa-quote-left text-brand-500"></i> Speech Script Preview</span>
+            <span class="text-[10px] text-slate-500">Updates in real-time</span>
+          </div>
+          <p id="speechPreviewText" class="text-sm text-slate-200 italic bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            "Time check. It's 8:38 PM, September 22, 2026. Time check brought to you by LagunaWISE Organization. All updates will be monitored."
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Column 3: Log History & Activity Monitor -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-brand-500"></i> Activity Logs
+            </h2>
+            <button id="clearLogsBtn" class="text-xs text-slate-500 hover:text-slate-300 transition">
+              Clear
+            </button>
+          </div>
+
+          <!-- Log Item Container -->
+          <div id="logContainer" class="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+            <div class="text-xs text-slate-500 italic text-center py-6">
+              No announcements recorded yet.
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 text-center text-xs text-slate-500">
+          LagunaWISE System v2.6 • Active Monitoring
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
+    LagunaWISE Organization &copy; 2026. All rights reserved. Dynamic Time Check & Voice Speech Module.
+  </footer>
+
+  <!-- Audio Fallback Element for alert.wav -->
+  <audio id="alertAudioFallback" src="alert.wav" preload="auto"></audio>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // System State Variables
+    let audioUnlocked = false;
+    let autoAnnounceActive = false;
+    let timerInterval = null;
+    let countdownInterval = null;
+    let selectedVoice = null;
+    let intervalMinutes = 5;
+    let targetNextTimestamp = 0;
+    let synthAudioCtx = null;
+
+    // DOM Elements
+    const audioUnlockOverlay = document.getElementById('audioUnlockOverlay');
+    const unlockAudioBtn = document.getElementById('unlockAudioBtn');
+    const liveClockDisplay = document.getElementById('liveClockDisplay');
+    const liveDateDisplay = document.getElementById('liveDateDisplay');
+    const phstDateFormatted = document.getElementById('phstDateFormatted');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const countdownProgressText = document.getElementById('countdownProgressText');
+    const nextScheduledTime = document.getElementById('nextScheduledTime');
+    const toggleSystemBtn = document.getElementById('toggleSystemBtn');
+    const toggleBtnText = document.getElementById('toggleBtnText');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const triggerNowBtn = document.getElementById('triggerNowBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const speechState = document.getElementById('speechState');
+    const intervalInput = document.getElementById('intervalInput');
+    const chimeTypeSelect = document.getElementById('chimeTypeSelect');
+    const testChimeBtn = document.getElementById('testChimeBtn');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const voiceMatchBadge = document.getElementById('voiceMatchBadge');
+    const activeVoiceName = document.getElementById('activeVoiceName');
+    const speechRate = document.getElementById('speechRate');
+    const speechPitch = document.getElementById('speechPitch');
+    const speechVolume = document.getElementById('speechVolume');
+    const rateValue = document.getElementById('rateValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const volumeValue = document.getElementById('volumeValue');
+    const templateInput = document.getElementById('templateInput');
+    const resetTemplateBtn = document.getElementById('resetTemplateBtn');
+    const speechPreviewText = document.getElementById('speechPreviewText');
+    const logContainer = document.getElementById('logContainer');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
+    const alertAudioFallback = document.getElementById('alertAudioFallback');
+
+    const DEFAULT_TEMPLATE = "Time check. It's {TIME}, {DATE}. Time check brought to you by LagunaWISE Organization. All updates will be monitored.";
+
+    // Synthesize clean alert chime using Web Audio API (Reliable without external alert.wav dependency)
+    function playSyntheticChime() {
+      return new Promise((resolve) => {
+        try {
+          if (!synthAudioCtx) {
+            synthAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (synthAudioCtx.state === 'suspended') {
+            synthAudioCtx.resume();
+          }
+
+          const now = synthAudioCtx.currentTime;
+          
+          // Dual High Tone Chime
+          const osc1 = synthAudioCtx.createOscillator();
+          const osc2 = synthAudioCtx.createOscillator();
+          const gain = synthAudioCtx.createGain();
+
+          osc1.type = 'sine';
+          osc2.type = 'sine';
+
+          // Frequencies (Emergency chime note pair E5 -> A5)
+          osc1.frequency.setValueAtTime(659.25, now); // E5
+          osc1.frequency.setValueAtTime(880.00, now + 0.15); // A5
+
+          osc2.frequency.setValueAtTime(1318.51, now); // E6
+          osc2.frequency.setValueAtTime(1760.00, now + 0.15); // A6
+
+          // Envelope
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.3, now + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(synthAudioCtx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.55);
+          osc2.stop(now + 0.55);
+
+          setTimeout(() => {
+            resolve();
+          }, 600);
+        } catch (e) {
+          console.warn("AudioContext error fallback:", e);
+          resolve();
+        }
+      });
+    }
+
+    // Function to play sound chime based on selection
+    async function playAlertTone() {
+      const type = chimeTypeSelect.value;
+      if (type === 'file') {
+        try {
+          alertAudioFallback.currentTime = 0;
+          await alertAudioFallback.play();
+          return new Promise((res) => {
+            alertAudioFallback.onended = res;
+            // Timeout safety fallback if audio load fails
+            setTimeout(res, 1200);
+          });
+        } catch (err) {
+          console.warn("Fallback to synthetic chime because alert.wav couldn't be played:", err);
+          return playSyntheticChime();
+        }
+      } else {
+        return playSyntheticChime();
+      }
+    }
+
+    // Get PHST Date & Time formatted strings
+    function getPHSTComponents() {
+      const now = new Date();
+      
+      // Formatting Time for Speech & Display
+      const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      // Formatting Full Date for Speech & Display
+      const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      const fullTimeStr = timeFormatter.format(now); // e.g., "8:38 PM"
+      const fullDateStr = dateFormatter.format(now); // e.g., "September 22, 2026"
+
+      return {
+        timeStr: fullTimeStr,
+        dateStr: fullDateStr,
+        rawDate: now
+      };
+    }
+
+    // Realtime Clock Updater
+    function updateLiveClock() {
+      const phst = getPHSTComponents();
+      
+      // Detailed seconds for live display
+      const timeWithSeconds = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date());
+
+      liveClockDisplay.textContent = timeWithSeconds;
+      liveDateDisplay.textContent = phst.dateStr;
+      phstDateFormatted.textContent = phst.dateStr;
+
+      updateSpeechPreview();
+    }
+
+    // Build speech sentence from template
+    function buildSpeechText() {
+      const phst = getPHSTComponents();
+      let template = templateInput.value || DEFAULT_TEMPLATE;
+      return template
+        .replace(/{TIME}/g, phst.timeStr)
+        .replace(/{DATE}/g, phst.dateStr);
+    }
+
+    function updateSpeechPreview() {
+      speechPreviewText.textContent = `"${buildSpeechText()}"`;
+    }
+
+    // Populate Speech Voices
+    function loadSpeechVoices() {
+      if (!('speechSynthesis' in window)) {
+        voiceMatchBadge.textContent = "Speech API Not Supported";
+        voiceMatchBadge.className = "text-[10px] text-rose-400";
+        return;
+      }
+
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return;
+
+      voiceSelect.innerHTML = '';
+      
+      let matchedVoice = null;
+
+      // Prefer Microsoft David English (US)
+      voices.forEach((v) => {
+        const option = document.createElement('option');
+        option.value = v.name;
+        option.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(option);
+
+        if (v.name.includes("Microsoft David") || v.name.includes("David")) {
+          matchedVoice = v;
+        }
+      });
+
+      // Fallbacks if David isn't explicitly found
+      if (!matchedVoice) {
+        matchedVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male')) ||
+                       voices.find(v => v.lang.startsWith('en-US')) ||
+                       voices.find(v => v.lang.startsWith('en')) ||
+                       voices[0];
+      }
+
+      if (matchedVoice) {
+        voiceSelect.value = matchedVoice.name;
+        selectedVoice = matchedVoice;
+        activeVoiceName.textContent = matchedVoice.name;
+
+        if (matchedVoice.name.includes("David")) {
+          voiceMatchBadge.textContent = "Matched: Microsoft David";
+          voiceMatchBadge.className = "text-[10px] text-emerald-400 font-semibold";
+        } else {
+          voiceMatchBadge.textContent = "Fallback System Voice";
+          voiceMatchBadge.className = "text-[10px] text-amber-400 font-semibold";
+        }
+      }
+    }
+
+    // Execute Speech Sequence: Tone -> Speech -> Tone
+    async function executeSpeechSequence(triggerType = "Scheduled") {
+      if (!('speechSynthesis' in window)) {
+        addLogEntry("Error", "Browser does not support SpeechSynthesis.");
+        return;
+      }
+
+      // Stop any ongoing speech
+      window.speechSynthesis.cancel();
+
+      // UI state
+      speechState.innerHTML = `<i class="fa-solid fa-volume-high text-brand-400 animate-pulse mr-1"></i> Announcing...`;
+      
+      const speechText = buildSpeechText();
+
+      try {
+        // Step 1: Initial Chime Tone
+        await playAlertTone();
+
+        // Step 2: Perform Text-to-Speech
+        await new Promise((resolve) => {
+          const utterance = new SpeechSynthesisUtterance(speechText);
+          
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+          utterance.rate = parseFloat(speechRate.value);
+          utterance.pitch = parseFloat(speechPitch.value);
+          utterance.volume = parseFloat(speechVolume.value);
+
+          utterance.onend = () => resolve();
+          utterance.onerror = (e) => {
+            console.error("Speech Error:", e);
+            resolve();
+          };
+
+          window.speechSynthesis.speak(utterance);
+        });
+
+        // Step 3: Ending Chime Tone
+        await playAlertTone();
+
+        addLogEntry(triggerType, speechText);
+
+      } catch (err) {
+        console.error("Sequence error:", err);
+      } finally {
+        speechState.innerHTML = `<i class="fa-solid fa-volume-xmark mr-1"></i> Idle`;
+      }
+    }
+
+    // Start or Reset Countdown Timer
+    function resetCountdown() {
+      intervalMinutes = parseFloat(intervalInput.value) || 5;
+      const durationMs = intervalMinutes * 60 * 1000;
+      targetNextTimestamp = Date.now() + durationMs;
+
+      // Calculate future display time
+      const nextDate = new Date(targetNextTimestamp);
+      nextScheduledTime.textContent = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(nextDate);
+
+      updateCountdownDisplay();
+    }
+
+    function updateCountdownDisplay() {
+      if (!autoAnnounceActive) {
+        countdownDisplay.textContent = formatMMSS(intervalMinutes * 60);
+        countdownProgressText.textContent = "PAUSED";
+        return;
+      }
+
+      const diffSeconds = Math.max(0, Math.ceil((targetNextTimestamp - Date.now()) / 1000));
+      countdownDisplay.textContent = formatMMSS(diffSeconds);
+      countdownProgressText.textContent = formatMMSS(diffSeconds);
+
+      if (diffSeconds <= 0) {
+        executeSpeechSequence("Scheduled (Auto)");
+        resetCountdown();
+      }
+    }
+
+    function formatMMSS(totalSeconds) {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // Log history renderer
+    function addLogEntry(type, text) {
+      // Remove empty state text if present
+      if (logContainer.querySelector('.italic')) {
+        logContainer.innerHTML = '';
+      }
+
+      const timeStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date());
+
+      const item = document.createElement('div');
+      item.className = "bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs space-y-1 transition hover:border-slate-700";
+      
+      const badgeColor = type.includes("Manual") 
+        ? "bg-amber-500/10 text-amber-400 border-amber-500/20" 
+        : "bg-brand-500/10 text-brand-400 border-brand-500/20";
+
+      item.innerHTML = `
+        <div class="flex items-center justify-between font-mono">
+          <span class="text-[10px] px-2 py-0.5 rounded border ${badgeColor}">${type}</span>
+          <span class="text-slate-500 text-[11px]">${timeStr}</span>
+        </div>
+        <p class="text-slate-300 font-sans line-clamp-2 mt-1 leading-relaxed">${text}</p>
+      `;
+
+      logContainer.prepend(item);
+    }
+
+    // System Toggle Active / Standby
+    function toggleSystemState(forceState = null) {
+      autoAnnounceActive = forceState !== null ? forceState : !autoAnnounceActive;
+
+      if (autoAnnounceActive) {
+        toggleBtnText.textContent = "Pause Auto";
+        toggleIcon.className = "fa-solid fa-pause";
+        toggleSystemBtn.className = "py-2.5 px-4 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20 cursor-pointer";
+
+        statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping";
+        statusText.textContent = "System Active";
+        statusBadge.className = "flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-400";
+
+        resetCountdown();
+      } else {
+        toggleBtnText.textContent = "Start Auto";
+        toggleIcon.className = "fa-solid fa-play";
+        toggleSystemBtn.className = "py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer";
+
+        statusDot.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
+        statusText.textContent = "System Standby";
+        statusBadge.className = "flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400";
+
+        nextScheduledTime.textContent = "--:-- --";
+        updateCountdownDisplay();
+      }
+    }
+
+    // Audio unlock handler
+    unlockAudioBtn.addEventListener('click', () => {
+      audioUnlocked = true;
+      audioUnlockOverlay.classList.add('hidden');
+      
+      // Initialize AudioContext
+      if (!synthAudioCtx) {
+        synthAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Play initial test chime & start auto announcer
+      playSyntheticChime();
+      toggleSystemState(true);
+    });
+
+    // Toggle Button Listener
+    toggleSystemBtn.addEventListener('click', () => {
+      toggleSystemState();
+    });
+
+    // Trigger Now Listener
+    triggerNowBtn.addEventListener('click', () => {
+      executeSpeechSequence("Manual Trigger");
+      if (autoAnnounceActive) {
+        resetCountdown(); // Reset interval countdown on manual triggering
+      }
+    });
+
+    // Test Chime Button
+    testChimeBtn.addEventListener('click', () => {
+      playAlertTone();
+    });
+
+    // Voice Selection Changed
+    voiceSelect.addEventListener('change', () => {
+      const voices = window.speechSynthesis.getVoices();
+      selectedVoice = voices.find(v => v.name === voiceSelect.value);
+      if (selectedVoice) {
+        activeVoiceName.textContent = selectedVoice.name;
+      }
+    });
+
+    // Interval Input Changed
+    intervalInput.addEventListener('change', () => {
+      if (autoAnnounceActive) {
+        resetCountdown();
+      } else {
+        updateCountdownDisplay();
+      }
+    });
+
+    // Template Input Changed
+    templateInput.addEventListener('input', updateSpeechPreview);
+
+    resetTemplateBtn.addEventListener('click', () => {
+      templateInput.value = DEFAULT_TEMPLATE;
+      updateSpeechPreview();
+    });
+
+    // Sliders Labels Updater
+    speechRate.addEventListener('input', (e) => rateValue.textContent = `${e.target.value}x`);
+    speechPitch.addEventListener('input', (e) => pitchValue.textContent = e.target.value);
+    speechVolume.addEventListener('input', (e) => volumeValue.textContent = `${Math.round(e.target.value * 100)}%`);
+
+    // Clear Logs
+    clearLogsBtn.addEventListener('click', () => {
+      logContainer.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-6">No announcements recorded yet.</div>`;
+    });
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLiveClock();
+      setInterval(updateLiveClock, 1000);
+      setInterval(updateCountdownDisplay, 1000);
+
+      // Web Speech voices loading
+      if ('speechSynthesis' in window) {
+        loadSpeechVoices();
+        window.speechSynthesis.onvoiceschanged = loadSpeechVoices;
+      }
+    });
+  </script>
+</body>
+</html>
