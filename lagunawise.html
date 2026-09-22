@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHIVOLCS Earthquake Voice Alert</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#071018;--panel:#0d1722;--panel2:#111f2d;--line:#203243;--text:#edf6ff;--muted:#8ea4b7;--accent:#35b9ff;--good:#45df9a;--warn:#ffc857;--danger:#ff5c6c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% -10%,#123149 0,#071018 42%,#050b11 100%);color:var(--text);font-family:Inter,Arial,sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:28px 18px 50px}.header{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.brand h1{font-family:Poppins;margin:0;font-size:28px}.brand p{margin:6px 0;color:var(--muted);font-size:13px}
+.status{border:1px solid var(--line);background:#0b151f;padding:11px 14px;border-radius:13px;min-width:210px;text-align:right;font-size:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:7px}.offline .dot{background:var(--danger)}
+.grid{display:grid;grid-template-columns:1.5fr .8fr;gap:16px}.card{background:linear-gradient(180deg,#0d1925,#0a131d);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 15px 40px #0004}.hero{border-color:#25465e}.hero .mag{font-size:54px;font-weight:800;font-family:Poppins;line-height:1}.mag small{font-size:16px;color:var(--muted)}
+.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:15px}.kv{background:#0b1620;border:1px solid #1a2a38;border-radius:11px;padding:10px}.kv b{display:block;font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.7px;margin-bottom:4px}.kv span{font-size:13px;word-break:break-word}
+.location{font-size:17px;font-weight:700;margin:8px 0}.comment{margin-top:12px;padding:12px;border-left:3px solid var(--accent);background:#0a1620;border-radius:8px;color:#cfe4f4;font-size:13px;line-height:1.5}
+.controls{display:flex;gap:8px;flex-wrap:wrap}.btn,select,input{border:1px solid #294153;background:#0a151f;color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}.btn{cursor:pointer;font-weight:700}.btn:hover{border-color:var(--accent);background:#102333}.btn.primary{background:#0c547b;border-color:#238fc6}.btn.danger{border-color:#7d3440}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-title{font-family:Poppins;font-size:15px;margin:0 0 12px}.small{font-size:12px;color:var(--muted);line-height:1.5}
+.table{margin-top:16px;overflow:auto}.item{display:grid;grid-template-columns:82px 1fr 90px 80px;gap:12px;align-items:center;padding:12px 8px;border-top:1px solid #1a2a38;font-size:12px}.item:first-child{border-top:0}.badge{padding:5px 8px;border-radius:7px;background:#17364a;text-align:center;font-weight:800}.muted{color:var(--muted)}
+.intensities{margin-top:12px}.intensity{font-size:12px;color:#d7e8f4;margin-top:5px}.footer{margin-top:20px;color:#6f879a;font-size:11px;text-align:center}
+.notice{padding:10px 12px;border-radius:10px;background:#111e2a;border:1px solid #1e3345;margin-bottom:12px;font-size:12px;line-height:1.45}.notice b{color:#fff}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}.field{margin-bottom:12px}.toggle{display:flex;align-items:center;gap:9px}.toggle input{width:18px;height:18px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.header{flex-direction:column}.status{text-align:left;width:100%}.item{grid-template-columns:70px 1fr 75px}.item .depth{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">
+      <h1>PHIVOLCS Earthquake Voice Alert</h1>
+      <p>Automatic high-magnitude earthquake monitor • Magnitude 4.0–9.0 only</p>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><b>Connecting…</b><br><span class="muted" id="lastCheck">Waiting for source</span></div>
+  </div>
+
+  <div class="notice">
+    <b>Trigger rule:</b> Only earthquakes with magnitude <b>4.0 to 9.0 inclusive</b> are eligible for automatic voice announcement.
+    Existing records are loaded silently on startup; only newly detected records are announced automatically.
+  </div>
+
+  <div class="grid">
+    <section class="card hero">
+      <div class="row"><h2 class="section-title">Latest Eligible Earthquake</h2><span class="badge" id="latestBadge">NO DATA</span></div>
+      <div id="latestContent" class="small">Waiting for PHIVOLCS data…</div>
+      <div class="controls" style="margin-top:16px">
+        <button class="btn primary" onclick="announceLatest()">▶ Announce Latest</button>
+        <button class="btn" onclick="previewAlert()">🔊 Preview alert.wav</button>
+        <button class="btn" onclick="previewTone()">♪ Preview selected tone</button>
+        <button class="btn" onclick="previewVoice()">◉ Preview Filipino voice</button>
+        <button class="btn" onclick="fetchData(true)">↻ Refresh now</button>
+      </div>
+    </section>
+
+    <aside class="card">
+      <h2 class="section-title">Voice & Alert Settings</h2>
+      <div class="field"><label>Refresh interval</label><select id="interval"><option value="15000">15 seconds</option><option value="30000" selected>30 seconds</option><option value="60000">1 minute</option><option value="120000">2 minutes</option></select></div>
+      <div class="field"><label>Alert tone</label><select id="tone"><option value="alert.wav">alert.wav — standard</option><option value="tone_high.wav">High alert tone</option><option value="tone_warning.wav">Warning tone</option><option value="tone_chime.wav">Chime sequence</option></select></div>
+      <div class="field"><label>Speech voice</label><select id="voice"><option value="">Auto-select Filipino / Philippines voice</option></select></div>
+      <label class="toggle"><input type="checkbox" id="auto" checked> Auto-read newly detected M4.0–M9.0 earthquakes</label>
+      <p class="small" style="margin-top:12px">The browser's Web Speech API is used for voice. A Filipino/Philippines voice is selected when the browser/OS provides one; otherwise the closest available voice is used.</p>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <div class="row"><h2 class="section-title">Eligible Earthquakes</h2><span class="small" id="count">0 records</span></div>
+    <div class="table" id="list"><div class="small">No eligible earthquakes loaded.</div></div>
+  </section>
+
+  <div class="footer">
+    Source endpoint: <span id="sourceLabel"></span><br>
+    Data fields are read from the supplied PHIVOLCS JSON format. This page is an alert/voice interface and does not replace official PHIVOLCS advisories.
+  </div>
+</div>
+
+<script>
+const SOURCE = "http://88.198.37.107:4187/phivolcs/data/earthquake/";
+const MIN_MAG = 4.0, MAX_MAG = 9.0;
+let records=[], seen=new Set(), initialized=false, timer=null, audioCtx=null;
+
+document.getElementById("sourceLabel").textContent=SOURCE;
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function val(v){return v===null||v===undefined||v===""?"No information":v;}
+function bool(v){return v===true?"Yes":v===false?"No":val(v);}
+function formatIssued(x){return x?.date&&x?.time?`${x.date} ${x.time}`:val(x);}
+function key(r){return `${r.id}|${r.info_no}`;}
+
+function intensityText(r){
+  const a=r.reported_intensities;
+  if(!a || typeof a!=="object") return "No reported intensities";
+  const parts=[];
+  for(const [level,regions] of Object.entries(a)){
+    if(!regions || typeof regions!=="object") continue;
+    for(const [province,places] of Object.entries(regions)){
+      parts.push(`Intensity ${level}: ${province}${places?.length?` — ${places.join(", ")}`:""}`);
+    }
+  }
+  return parts.length?parts.join(" • "):"No reported intensities";
+}
+
+function renderRecord(r){
+  return `<div class="location">${esc(val(r.location))}</div>
+  <div class="mag">${esc(r.magnitude?.value)} <small>${esc(r.magnitude?.scale||"")}</small></div>
+  <div class="meta">
+    <div class="kv"><b>Earthquake ID</b><span>${esc(val(r.id))}</span></div>
+    <div class="kv"><b>Information No.</b><span>${esc(val(r.info_no))}</span></div>
+    <div class="kv"><b>Issued</b><span>${esc(formatIssued(r.issued_on))}</span></div>
+    <div class="kv"><b>Origin Time</b><span>${esc(`${val(r.date)} ${val(r.time)}`)}</span></div>
+    <div class="kv"><b>Coordinates</b><span>${esc(val(r.lat))}, ${esc(val(r.lon))}</span></div>
+    <div class="kv"><b>Depth</b><span>${esc(val(r.depth_km))} km</span></div>
+    <div class="kv"><b>Origin</b><span>${esc(val(r.origin))}</span></div>
+    <div class="kv"><b>Damage</b><span>${esc(bool(r.damage))}</span></div>
+    <div class="kv"><b>Aftershock</b><span>${esc(bool(r.aftershocks))}</span></div>
+    <div class="kv"><b>Instrumental Intensities</b><span>${esc(val(r.instrumental_intensities))}</span></div>
+  </div>
+  <div class="intensities"><b style="font-size:11px;color:var(--muted)">REPORTED INTENSITIES</b><div class="intensity">${esc(intensityText(r))}</div></div>
+  <div class="comment"><b>Comment:</b> ${esc(val(r.comment))}</div>`;
+}
+
+function render(){
+  const latest=records[0];
+  const lc=document.getElementById("latestContent");
+  if(latest){
+    lc.innerHTML=renderRecord(latest);
+    document.getElementById("latestBadge").textContent=`M${latest.magnitude.value}`;
+  }else{
+    lc.innerHTML='<div class="small">No M4.0–M9.0 earthquake is currently present in the loaded source data.</div>';
+    document.getElementById("latestBadge").textContent="NO DATA";
+  }
+  document.getElementById("count").textContent=`${records.length} eligible record${records.length===1?"":"s"}`;
+  document.getElementById("list").innerHTML=records.slice(0,30).map(r=>`
+    <div class="item">
+      <div class="badge">M${esc(r.magnitude?.value)}</div>
+      <div><b>${esc(r.location)}</b><br><span class="muted">${esc(r.date)} ${esc(r.time)} • ${esc(r.depth_km)} km • ${esc(r.origin)}</span></div>
+      <div>${esc(r.magnitude?.scale)}</div>
+      <div class="depth"><button class="btn" onclick='announceById(${JSON.stringify(key(r))})'>▶ Voice</button></div>
+    </div>`).join("") || '<div class="small">No eligible earthquakes loaded.</div>';
+}
+
+function buildSpeech(r){
+  const comment = r.comment ? `Komento mula sa source: ${r.comment}.` : "Walang komento mula sa source.";
+  const ri = intensityText(r);
+  return [
+    "Babala sa lindol.",
+    `Narito ang impormasyon mula sa PHIVOLCS earthquake data.`,
+    `Earthquake ID: ${r.id}.`,
+    `Information number: ${r.info_no}.`,
+    `Magnitude: ${r.magnitude?.value} ${r.magnitude?.scale||""}.`,
+    `Origin time: ${r.date}, ${r.time}.`,
+    `Issued: ${formatIssued(r.issued_on)}.`,
+    `Lokasyon: ${r.location}.`,
+    `Latitude ${r.lat}, longitude ${r.lon}.`,
+    `Depth: ${r.depth_km} kilometers.`,
+    `Origin: ${r.origin}.`,
+    `Damage reported: ${bool(r.damage)}.`,
+    `Aftershock: ${bool(r.aftershocks)}.`,
+    comment,
+    `Reported intensities: ${ri}.`,
+    `Instrumental intensities: ${r.instrumental_intensities ? JSON.stringify(r.instrumental_intensities) : "Walang impormasyon"}.`,
+    "Muling ipinapaalala: manatiling alerto at sumunod sa opisyal na abiso ng PHIVOLCS."
+  ].join(" ");
+}
+
+function getVoices(){
+  const sel=document.getElementById("voice");
+  const voices=speechSynthesis.getVoices();
+  const old=sel.value;
+  sel.innerHTML='<option value="">Auto-select Filipino / Philippines voice</option>';
+  voices.filter(v=>/fil|philippines|en-PH/i.test(v.lang+" "+v.name)).forEach((v,i)=>{
+    const o=document.createElement("option");o.value=v.name;o.textContent=`${v.name} (${v.lang})`;sel.appendChild(o);
+  });
+  voices.filter(v=>!(/fil|philippines|en-PH/i.test(v.lang+" "+v.name))).slice(0,40).forEach(v=>{
+    const o=document.createElement("option");o.value=v.name;o.textContent=`${v.name} (${v.lang})`;sel.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value===old)) sel.value=old;
+}
+speechSynthesis.onvoiceschanged=getVoices; getVoices();
+
+async function playTone(){
+  const file=document.getElementById("tone").value;
+  try{const a=new Audio(file);a.preload="auto";await a.play();}catch(e){fallbackTone();}
+}
+function fallbackTone(){
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  const now=audioCtx.currentTime;
+  [880,1175,880].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=f;o.type="sine";g.gain.setValueAtTime(0.0001,now+i*.18);g.gain.exponentialRampToValueAtTime(.25,now+i*.18+.02);g.gain.exponentialRampToValueAtTime(.0001,now+i*.18+.15);o.connect(g).connect(audioCtx.destination);o.start(now+i*.18);o.stop(now+i*.18+.17);});
+}
+async function playSelectedTone(){await playTone();}
+function previewAlert(){const old=document.getElementById("tone").value;document.getElementById("tone").value="alert.wav";playTone();setTimeout(()=>document.getElementById("tone").value=old,100);}
+function previewTone(){playTone();}
+function chooseVoice(){
+  const wanted=document.getElementById("voice").value;
+  const voices=speechSynthesis.getVoices();
+  if(wanted){return voices.find(v=>v.name===wanted)||null;}
+  return voices.find(v=>/^fil-PH$/i.test(v.lang)) ||
+         voices.find(v=>/filipino|fil-?ph|philippines/i.test(v.name+" "+v.lang)) ||
+         voices.find(v=>/^en-PH$/i.test(v.lang)) ||
+         voices.find(v=>/^en/i.test(v.lang)) || voices[0] || null;
+}
+function speak(text, done){
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=chooseVoice(); if(v) u.voice=v;
+  u.lang=v?.lang||"fil-PH"; u.rate=.92; u.pitch=1; u.volume=1;
+  u.onend=()=>done&&done(); speechSynthesis.speak(u);
+}
+async function announce(r){
+  if(!r)return;
+  await playTone();
+  setTimeout(()=>speak(buildSpeech(r),()=>setTimeout(()=>playTone(),220)),520);
+}
+function announceLatest(){announce(records[0]);}
+function announceById(k){announce(records.find(r=>key(r)===k));}
+function previewVoice(){
+  speak("Ito ay isang preview ng Filipino voice para sa earthquake alert. Ang system ay awtomatikong magsasalita kapag may bagong lindol na pasok sa magnitude apat hanggang siyam.",null);
+}
+
+async function fetchData(manual=false){
+  try{
+    const url=SOURCE+(SOURCE.includes("?")?"&":"?")+"t="+Date.now();
+    const res=await fetch(url,{cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const json=await res.json();
+    const data=Array.isArray(json)?json:(Array.isArray(json.data)?json.data:[]);
+    const eligible=data.filter(r=>{
+      const m=Number(r?.magnitude?.value);
+      return Number.isFinite(m)&&m>=MIN_MAG&&m<=MAX_MAG;
+    }).sort((a,b)=>new Date(`${b.date}T${b.time}`)-new Date(`${a.date}T${a.time}`));
+    const newOnes=eligible.filter(r=>!seen.has(key(r)));
+    eligible.forEach(r=>seen.add(key(r)));
+    records=eligible;
+    render();
+    document.getElementById("status").classList.remove("offline");
+    document.getElementById("status").innerHTML='<span class="dot"></span><b>Source online</b><br><span class="muted" id="lastCheck">Updated '+new Date().toLocaleTimeString()+'</span>';
+    if(initialized && document.getElementById("auto").checked && newOnes.length){
+      // Announce newest first. If several arrived together, queue them safely.
+      for(const r of newOnes.sort((a,b)=>new Date(`${a.date}T${a.time}`)-new Date(`${b.date}T${b.time}`))) await announce(r);
+    }
+    initialized=true;
+  }catch(e){
+    document.getElementById("status").classList.add("offline");
+    document.getElementById("status").innerHTML='<span class="dot"></span><b>Source unavailable</b><br><span class="muted">'+esc(e.message)+'</span>';
+    // Keep the last successful data on screen.
+  }
+}
+
+function resetTimer(){
+  clearInterval(timer);
+  timer=setInterval(()=>fetchData(false),Number(document.getElementById("interval").value));
+}
+document.getElementById("interval").addEventListener("change",resetTimer);
+
+fetchData(false);
+resetTimer();
+</script>
+</body>
+</html>
