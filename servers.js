@@ -10,7 +10,7 @@ window.CINEMA_SERVER_LINKS = {
     "4": "https://vidsource.vidhostingprvt.top/primesrc.php?id=tt2096673"
   },
   "inside-out-2": {
-    "1": "https://vidsource.vidhostingprvt.top/default.php?id=tt22022452",
+    "1": "http://127.0.0.1:5500/YERT_Website/tt22022452.mp4",
     "2": "https://vidsource.vidhostingprvt.top/vidlink.php?id=tt22022452",
     "3": "https://embedmaster.link/movie/tt22022452?skin=aurora&welcome_page=on&autoplay=on",
     "4": "https://vidsource.vidhostingprvt.top/primesrc.php?id=tt22022452"
